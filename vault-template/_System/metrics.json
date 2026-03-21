@@ -1,0 +1,11 @@
+{
+  "metrics": [
+    { "key": "sleep", "label": "Sleep Score", "type": "number", "range": [1, 100] },
+    { "key": "reading", "label": "Reading", "type": "number", "unit": "minutes" },
+    { "key": "family", "label": "Family Engagement", "type": "number", "range": [1, 10] },
+    { "key": "partner", "label": "Partner Score", "type": "number", "range": [1, 10], "comment": true },
+    { "key": "growth", "label": "Growth", "type": "text" },
+    { "key": "grateful", "label": "Gratitude", "type": "list" },
+    { "key": "journal", "label": "Journal", "type": "text" }
+  ]
+}
