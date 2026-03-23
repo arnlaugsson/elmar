@@ -186,6 +186,7 @@ program
         adapter,
         config.vaultPath,
         config.inboxFile,
+        config.systemFolder,
         today
       );
 

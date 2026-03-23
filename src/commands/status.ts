@@ -1,5 +1,7 @@
 import type { VaultAdapter } from "../adapters/adapter.js";
 import { collectTasks } from "./tasks.js";
+import { loadRegistry } from "../core/metric-registry.js";
+import { join } from "node:path";
 
 export interface StatusSummary {
   readonly inboxCount: number;
@@ -12,6 +14,7 @@ export async function runStatus(
   adapter: VaultAdapter,
   vaultPath: string,
   inboxPath: string,
+  systemFolder: string,
   date: string
 ): Promise<StatusSummary> {
   let inboxCount = 0;
@@ -30,11 +33,14 @@ export async function runStatus(
     (t) => t.dueDate !== null && t.dueDate < date
   ).length;
 
-  const trackingGaps: string[] = [];
+  const registry = loadRegistry(join(vaultPath, systemFolder, "metrics.json"));
+  let trackingGaps: string[];
+
   const dailyNotePath = `Journal/${date}.md`;
   if (await adapter.noteExists(dailyNotePath)) {
     const content = await adapter.readNote(dailyNotePath);
     const lines = content.split("\n");
+    trackingGaps = [];
     let inTracking = false;
     for (const line of lines) {
       if (line.trim() === "## Tracking") {
@@ -49,6 +55,8 @@ export async function runStatus(
         }
       }
     }
+  } else {
+    trackingGaps = registry.metrics.map((m) => m.key);
   }
 
   return { inboxCount, openTaskCount, overdueCount, todayTrackingGaps: trackingGaps };
