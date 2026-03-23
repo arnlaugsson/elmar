@@ -21,7 +21,7 @@ export async function collectTasks(
     for (const file of files) {
       const content = await adapter.readNote(file);
 
-      if (folder === "1-Projects" && content.includes("Status: someday")) {
+      if (folder === "1-Projects" && content.includes("Status:: someday")) {
         continue;
       }
 

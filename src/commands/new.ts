@@ -61,13 +61,13 @@ export async function runNewProject(
   const filepath = `1-Projects/${filename}`;
   const today = new Date().toISOString().slice(0, 10);
 
-  const deadlineLine = deadline ? `Deadline: ${deadline}\n` : "";
+  const deadlineLine = deadline ? `Deadline:: ${deadline}\n` : "";
 
   const content = `# ${name}
 
-Status: active
-Area: ${area}
-Outcome: ${outcome}
+Status:: active
+Area:: ${area}
+Outcome:: ${outcome}
 Created: ${today}
 ${deadlineLine}
 ## Next Actions

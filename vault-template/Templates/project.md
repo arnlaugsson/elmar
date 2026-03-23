@@ -1,7 +1,7 @@
 # {{title}}
 
-Status: active
-Area: {{area}}
+Status:: active
+Area:: {{area}}
 Outcome: {{outcome}}
 Created: <% tp.date.now("YYYY-MM-DD") %>
 

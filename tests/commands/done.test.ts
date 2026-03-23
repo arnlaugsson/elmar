@@ -15,7 +15,7 @@ describe("runDone", () => {
     writeFileSync(
       join(vaultPath, "1-Projects", "work--api.md"),
       `# API
-Status: active
+Status:: active
 
 ## Next Actions
 - [ ] Draft spec #work
