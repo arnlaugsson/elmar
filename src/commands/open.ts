@@ -4,6 +4,7 @@ import { listProjects } from "./projects.js";
 import { execSync } from "node:child_process";
 import { join } from "node:path";
 import { select } from "@inquirer/prompts";
+import { CancelPromptError } from "@inquirer/core";
 import chalk from "chalk";
 
 export async function runOpen(
@@ -20,26 +21,34 @@ export async function runOpen(
 
   let match: string | undefined;
 
-  if (query) {
-    const lower = query.toLowerCase();
-    const found = projects.filter((p) => p.name.toLowerCase().includes(lower));
-    if (found.length === 0) {
-      console.log(chalk.red(`No project matching "${query}".`));
-      return;
-    }
-    if (found.length === 1) {
-      match = found[0].path;
+  try {
+    if (query) {
+      const lower = query.toLowerCase();
+      const found = projects.filter((p) => p.name.toLowerCase().includes(lower));
+      if (found.length === 0) {
+        console.log(chalk.red(`No project matching "${query}".`));
+        return;
+      }
+      if (found.length === 1) {
+        match = found[0].path;
+      } else {
+        match = await select({
+          message: "Multiple matches:",
+          choices: found.map((p) => ({ value: p.path, name: `[${p.area}] ${p.name}` })),
+        });
+      }
     } else {
       match = await select({
-        message: "Multiple matches:",
-        choices: found.map((p) => ({ value: p.path, name: `[${p.area}] ${p.name}` })),
+        message: "Open project:",
+        choices: projects.map((p) => ({ value: p.path, name: `[${p.area}] ${p.name}` })),
       });
     }
-  } else {
-    match = await select({
-      message: "Open project:",
-      choices: projects.map((p) => ({ value: p.path, name: `[${p.area}] ${p.name}` })),
-    });
+  } catch (err) {
+    if (err instanceof CancelPromptError) {
+      console.log(chalk.dim("Cancelled."));
+      return;
+    }
+    throw err;
   }
 
   const fullPath = join(config.vaultPath, match);
