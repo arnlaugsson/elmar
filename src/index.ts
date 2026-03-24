@@ -10,6 +10,8 @@ import { runJournal } from "./commands/journal.js";
 import { runDone } from "./commands/done.js";
 import { runStatus } from "./commands/status.js";
 import { runNewProject } from "./commands/new.js";
+import { runMigrate } from "./commands/migrate.js";
+import { getCliVersion } from "./core/migrations.js";
 import chalk from "chalk";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -21,7 +23,7 @@ program
   .description(
     "Personal knowledge & productivity system — Obsidian vault + CLI"
   )
-  .version("0.1.0");
+  .version(getCliVersion());
 
 program
   .command("init")
@@ -204,6 +206,21 @@ program
       } else {
         console.log(`\nTracking:       ${chalk.green("All logged for today")}`);
       }
+    } catch (err: unknown) {
+      console.error(chalk.red((err as Error).message));
+      process.exit(1);
+    }
+  });
+
+program
+  .command("migrate")
+  .description("Upgrade vault to the latest version")
+  .option("--dry-run", "Preview changes without modifying the vault")
+  .option("--yes", "Apply all fixes without prompting")
+  .action(async (opts) => {
+    try {
+      const config = loadConfig();
+      await runMigrate(config, { dryRun: opts.dryRun, yes: opts.yes });
     } catch (err: unknown) {
       console.error(chalk.red((err as Error).message));
       process.exit(1);

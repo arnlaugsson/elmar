@@ -3,6 +3,7 @@ import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ElmarConfig } from "../core/types.js";
 import { CONFIG_DEFAULTS } from "../core/config.js";
+import { writeVaultVersion, getCliVersion } from "../core/migrations.js";
 
 function getVaultTemplatePath(): string {
   const thisFile = fileURLToPath(import.meta.url);
@@ -30,4 +31,6 @@ export async function runInit(
 
   mkdirSync(dirname(configPath), { recursive: true });
   writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n");
+
+  writeVaultVersion(vaultPath, CONFIG_DEFAULTS.systemFolder, getCliVersion());
 }
