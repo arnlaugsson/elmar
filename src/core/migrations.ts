@@ -137,6 +137,11 @@ export const MIGRATIONS: readonly Migration[] = [
       },
     ],
   },
+  {
+    version: "0.3.0",
+    newFiles: ["Templates/monthly-review.md", "Journal/monthly/.gitkeep"],
+    fixes: [],
+  },
 ];
 
 export interface PendingFix {
@@ -157,7 +162,11 @@ export function collectPendingMigrations(
   readonly fixes: readonly PendingFix[];
 } {
   const vaultVersion = readVaultVersion(vaultPath, systemFolder);
-  const applicable = MIGRATIONS.filter((m) => compareSemver(m.version, vaultVersion.version) > 0);
+  const applicable = MIGRATIONS.filter(
+    (m) =>
+      compareSemver(m.version, vaultVersion.version) > 0 &&
+      compareSemver(m.version, cliVersion) <= 0
+  );
 
   const newFiles: { path: string; exists: boolean }[] = [];
   for (const migration of applicable) {

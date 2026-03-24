@@ -7,6 +7,7 @@ export const CONFIG_DEFAULTS: Omit<ElmarConfig, "vaultPath"> = {
   inboxFile: "0-Inbox/inbox.md",
   dailyNotesFolder: "Journal",
   weeklyNotesFolder: "Journal/weekly",
+  monthlyNotesFolder: "Journal/monthly",
   templatesFolder: "Templates",
   systemFolder: "_System",
   areas: ["work", "personal", "family", "finance"],

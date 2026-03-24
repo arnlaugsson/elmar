@@ -34,6 +34,7 @@ export interface ElmarConfig {
   readonly inboxFile: string;
   readonly dailyNotesFolder: string;
   readonly weeklyNotesFolder: string;
+  readonly monthlyNotesFolder: string;
   readonly templatesFolder: string;
   readonly systemFolder: string;
   readonly areas: readonly string[];
