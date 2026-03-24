@@ -26,6 +26,7 @@ import { collectTasks, filterTasks } from "./tasks.js";
 import { runLog } from "./log.js";
 import { snoozeDueDate } from "../core/task-date-utils.js";
 import { loadRegistry } from "../core/metric-registry.js";
+import { runNewProject } from "./new.js";
 import { join } from "node:path";
 import chalk from "chalk";
 import inquirer from "inquirer";
@@ -211,8 +212,8 @@ async function processInboxItems(
   mandatory: boolean
 ): Promise<void> {
   const choices = mandatory
-    ? ["Move to project", "Create task", "Archive", "Delete"]
-    : ["Skip", "Move to project", "Create task"];
+    ? ["Move", "Task", "New project", "Archive", "Delete"]
+    : ["Skip", "Move", "Task", "New project"];
 
   const inboxContent = await adapter.readNote(config.inboxFile);
   const linesToRemove: number[] = [];
@@ -225,7 +226,7 @@ async function processInboxItems(
       choices,
     }]);
 
-    if (action === "Move to project" || action === "Create task") {
+    if (action === "Move" || action === "Task") {
       const projects = await adapter.listFiles("1-Projects");
       const { project } = await inquirer.prompt([{
         type: "list",
@@ -235,12 +236,21 @@ async function processInboxItems(
       }]);
       const projectPath = `1-Projects/${project}`;
 
-      if (action === "Move to project") {
+      if (action === "Move") {
         await adapter.appendToSection(projectPath, "## Notes", `- ${item.text}`);
         console.log(chalk.green(`  → Moved to ${project}`));
       } else {
         await adapter.appendToSection(projectPath, "## Next Actions", `- [ ] ${item.text}`);
-        console.log(chalk.green(`  → Task created in ${project}`));
+        console.log(chalk.green(`  → Task added to ${project}`));
+      }
+      linesToRemove.push(item.line);
+    } else if (action === "New project") {
+      const { name } = await inquirer.prompt([
+        { type: "input", name: "name", message: "Project name:" },
+      ]);
+      if (name.trim()) {
+        const filepath = await runNewProject(adapter, config, name.trim(), {});
+        console.log(chalk.green(`  → Project created: ${filepath}`));
       }
       linesToRemove.push(item.line);
     } else if (action === "Archive" || action === "Delete") {
