@@ -13,6 +13,7 @@ import { runNewProject } from "./commands/new.js";
 import { runMigrate } from "./commands/migrate.js";
 import { runReview } from "./commands/review.js";
 import { listProjects } from "./commands/projects.js";
+import { runOpen } from "./commands/open.js";
 import { getCliVersion } from "./core/migrations.js";
 import chalk from "chalk";
 import { homedir } from "node:os";
@@ -268,6 +269,22 @@ program
         const status = p.status !== "active" ? chalk.yellow(` [${p.status}]`) : "";
         console.log(`${area} ${p.name}${tasks}${status}`);
       }
+    } catch (err: unknown) {
+      console.error(chalk.red((err as Error).message));
+      process.exit(1);
+    }
+  });
+
+program
+  .command("open")
+  .description("Open a project in your editor or Obsidian")
+  .argument("[query]", "Project name to search for")
+  .option("--obsidian", "Open in Obsidian instead of editor")
+  .action(async (query: string | undefined, opts) => {
+    try {
+      const config = loadConfig();
+      const adapter = resolveAdapter(config);
+      await runOpen(adapter, config, query, { obsidian: opts.obsidian });
     } catch (err: unknown) {
       console.error(chalk.red((err as Error).message));
       process.exit(1);
