@@ -29,7 +29,7 @@ import { loadRegistry } from "../core/metric-registry.js";
 import { runNewProject } from "./new.js";
 import { join } from "node:path";
 import chalk from "chalk";
-import { select, confirm, input, number as numberPrompt } from "@inquirer/prompts";
+import { select, confirm, input, number as numberPrompt, editor } from "@inquirer/prompts";
 
 function getStatePath(vaultPath: string, systemFolder: string): string {
   return join(vaultPath, systemFolder, ".elmar-review-state.json");
@@ -187,7 +187,10 @@ async function runDailySteps(
         const metric = registry.metrics.find((m) => m.key === key);
         if (!metric) continue;
         const label = metric.range ? `${metric.label} (${metric.range[0]}-${metric.range[1]})` : metric.label;
-        const value = await input({ message: `${label}:` });
+        const useEditor = metric.type === "text";
+        const value = useEditor
+          ? await editor({ message: `${label}:` })
+          : await input({ message: `${label}:` });
         if (value.trim()) {
           await runLog(adapter, config.vaultPath, config.systemFolder, key, value.trim(), today);
           console.log(chalk.green(`  ✓ Logged ${key}: ${value.trim()}`));
@@ -383,8 +386,8 @@ async function runWeeklySteps(
 
   // Step 6: Reflections
   onStep(5);
-  const wentWell = await input({ message: "\nWhat went well this week?" });
-  const needsAttention = await input({ message: "What needs attention?" });
+  const wentWell = await editor({ message: "\nWhat went well this week?" });
+  const needsAttention = await editor({ message: "What needs attention?" });
   const nextFocus = await input({ message: "Next week's top focus?" });
 
   // Step 7: Generate weekly note
