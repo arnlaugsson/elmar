@@ -1,6 +1,6 @@
 import type { VaultAdapter } from "../adapters/adapter.js";
 import type { ElmarConfig } from "../core/types.js";
-import { select, input } from "@inquirer/prompts";
+import { select, input } from "../core/prompt.js";
 
 export async function runNewProject(
   adapter: VaultAdapter,

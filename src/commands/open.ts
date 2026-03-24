@@ -3,8 +3,7 @@ import type { ElmarConfig } from "../core/types.js";
 import { listProjects } from "./projects.js";
 import { execSync } from "node:child_process";
 import { join } from "node:path";
-import { select } from "@inquirer/prompts";
-import { CancelPromptError } from "@inquirer/core";
+import { select, CancelPromptError } from "../core/prompt.js";
 import chalk from "chalk";
 
 export async function runOpen(

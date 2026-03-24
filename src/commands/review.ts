@@ -30,8 +30,7 @@ import { getInlineField } from "../core/markdown-utils.js";
 import { runNewProject } from "./new.js";
 import { join } from "node:path";
 import chalk from "chalk";
-import { select, confirm, input, number as numberPrompt, editor } from "@inquirer/prompts";
-import { CancelPromptError } from "@inquirer/core";
+import { select, confirm, input, number as numberPrompt, editor, CancelPromptError } from "../core/prompt.js";
 
 function getStatePath(vaultPath: string, systemFolder: string): string {
   return join(vaultPath, systemFolder, ".elmar-review-state.json");
