@@ -29,7 +29,7 @@ import { loadRegistry } from "../core/metric-registry.js";
 import { runNewProject } from "./new.js";
 import { join } from "node:path";
 import chalk from "chalk";
-import inquirer from "inquirer";
+import { select, confirm, input, number as numberPrompt } from "@inquirer/prompts";
 
 function getStatePath(vaultPath: string, systemFolder: string): string {
   return join(vaultPath, systemFolder, ".elmar-review-state.json");
@@ -124,9 +124,7 @@ async function runDailySteps(
     const items = parseInboxItems(inboxContent);
     if (items.length > 0) {
       console.log(`Inbox: ${items.length} items`);
-      const { process: shouldProcess } = await inquirer.prompt([
-        { type: "confirm", name: "process", message: "Process inbox now?", default: true },
-      ]);
+      const shouldProcess = await confirm({ message: "Process inbox now?", default: true });
       if (shouldProcess) {
         await processInboxItems(adapter, config, items, false);
       }
@@ -142,22 +140,22 @@ async function runDailySteps(
   if (dueTasks.length > 0) {
     console.log(`\nToday's tasks: ${dueTasks.length} due/overdue`);
     for (const task of dueTasks) {
-      const { action } = await inquirer.prompt([{
-        type: "list",
-        name: "action",
+      const action = await select({
         message: `${task.text} (${task.sourceArea})`,
-        choices: ["Done", "Snooze", "Skip"],
-      }]);
-      if (action === "Done") {
+        choices: [
+          { value: "done", name: "Done" },
+          { value: "snooze", name: "Snooze" },
+          { value: "skip", name: "Skip" },
+        ],
+      });
+      if (action === "done") {
         const content = await adapter.readNote(task.sourcePath);
         const lines = content.split("\n");
         lines[task.line] = lines[task.line].replace("- [ ]", "- [x]");
         await adapter.writeNote(task.sourcePath, lines.join("\n"));
         console.log(chalk.green(`  ✓ Completed`));
-      } else if (action === "Snooze") {
-        const { newDate } = await inquirer.prompt([
-          { type: "input", name: "newDate", message: "New due date (YYYY-MM-DD):" },
-        ]);
+      } else if (action === "snooze") {
+        const newDate = await input({ message: "New due date (YYYY-MM-DD):" });
         const content = await adapter.readNote(task.sourcePath);
         const lines = content.split("\n");
         lines[task.line] = snoozeDueDate(lines[task.line], newDate);
@@ -183,17 +181,13 @@ async function runDailySteps(
 
   if (gaps.length > 0) {
     console.log(`\nTracking gaps: ${gaps.join(", ")}`);
-    const { fillGaps } = await inquirer.prompt([
-      { type: "confirm", name: "fillGaps", message: "Log missing metrics now?", default: true },
-    ]);
+    const fillGaps = await confirm({ message: "Log missing metrics now?", default: true });
     if (fillGaps) {
       for (const key of gaps) {
         const metric = registry.metrics.find((m) => m.key === key);
         if (!metric) continue;
         const label = metric.range ? `${metric.label} (${metric.range[0]}-${metric.range[1]})` : metric.label;
-        const { value } = await inquirer.prompt([
-          { type: "input", name: "value", message: `${label}:` },
-        ]);
+        const value = await input({ message: `${label}:` });
         if (value.trim()) {
           await runLog(adapter, config.vaultPath, config.systemFolder, key, value.trim(), today);
           console.log(chalk.green(`  ✓ Logged ${key}: ${value.trim()}`));
@@ -212,31 +206,38 @@ async function processInboxItems(
   mandatory: boolean
 ): Promise<void> {
   const choices = mandatory
-    ? ["Move", "Task", "New project", "Archive", "Delete"]
-    : ["Skip", "Move", "Task", "New project"];
+    ? [
+        { value: "move", name: "Move" },
+        { value: "task", name: "Task" },
+        { value: "project", name: "New project" },
+        { value: "archive", name: "Archive" },
+        { value: "delete", name: "Delete" },
+      ]
+    : [
+        { value: "skip", name: "Skip" },
+        { value: "move", name: "Move" },
+        { value: "task", name: "Task" },
+        { value: "project", name: "New project" },
+      ];
 
   const inboxContent = await adapter.readNote(config.inboxFile);
   const linesToRemove: number[] = [];
 
   for (const item of items) {
-    const { action } = await inquirer.prompt([{
-      type: "list",
-      name: "action",
-      message: item.text,
-      choices,
-    }]);
+    const action = await select({ message: item.text, choices });
 
-    if (action === "Move" || action === "Task") {
+    if (action === "move" || action === "task") {
       const projects = await adapter.listFiles("1-Projects");
-      const { project } = await inquirer.prompt([{
-        type: "list",
-        name: "project",
+      const project = await select({
         message: "Which project?",
-        choices: projects.map((p) => p.replace("1-Projects/", "")),
-      }]);
+        choices: projects.map((p) => {
+          const name = p.replace("1-Projects/", "");
+          return { value: name, name };
+        }),
+      });
       const projectPath = `1-Projects/${project}`;
 
-      if (action === "Move") {
+      if (action === "move") {
         await adapter.appendToSection(projectPath, "## Notes", `- ${item.text}`);
         console.log(chalk.green(`  → Moved to ${project}`));
       } else {
@@ -244,20 +245,18 @@ async function processInboxItems(
         console.log(chalk.green(`  → Task added to ${project}`));
       }
       linesToRemove.push(item.line);
-    } else if (action === "New project") {
-      const { name } = await inquirer.prompt([
-        { type: "input", name: "name", message: "Project name:" },
-      ]);
+    } else if (action === "project") {
+      const name = await input({ message: "Project name:" });
       if (name.trim()) {
         const filepath = await runNewProject(adapter, config, name.trim(), {});
         console.log(chalk.green(`  → Project created: ${filepath}`));
       }
       linesToRemove.push(item.line);
-    } else if (action === "Archive" || action === "Delete") {
+    } else if (action === "archive" || action === "delete") {
       linesToRemove.push(item.line);
       console.log(chalk.dim(`  → Removed`));
     }
-    // "Skip" does nothing
+    // "skip" does nothing
   }
 
   // Remove processed lines (reverse order to keep indices valid)
@@ -302,26 +301,26 @@ async function runWeeklySteps(
     const name = file.replace("1-Projects/", "").replace(".md", "");
     const openTasks = content.split("\n").filter((l) => l.match(/^- \[ \]/)).length;
 
-    const { action } = await inquirer.prompt([{
-      type: "list",
-      name: "action",
+    const action = await select({
       message: `${name} (${openTasks} open tasks)`,
-      choices: ["Still active", "Move to someday", "Archive"],
-    }]);
+      choices: [
+        { value: "active", name: "Still active" },
+        { value: "someday", name: "Move to someday" },
+        { value: "archive", name: "Archive" },
+      ],
+    });
 
-    if (action === "Move to someday") {
+    if (action === "someday") {
       const updated = content.replace(/^Status:: active$/m, "Status:: someday");
       await adapter.writeNote(file, updated);
       projectDecisions.push({ name, decision: "→ Someday" });
-    } else if (action === "Archive") {
+    } else if (action === "archive") {
       await adapter.moveNote(file, file.replace("1-Projects/", "4-Archive/"));
       projectDecisions.push({ name, decision: "→ Archived" });
     } else {
       projectDecisions.push({ name, decision: "Active" });
 
-      const { newTask } = await inquirer.prompt([
-        { type: "input", name: "newTask", message: "New task? (blank to skip):" },
-      ]);
+      const newTask = await input({ message: "New task? (blank to skip):" });
       if (newTask.trim()) {
         const area = name.split("--")[0] || "personal";
         await adapter.appendToSection(file, "## Next Actions", `- [ ] ${newTask.trim()} #${area}`);
@@ -342,16 +341,18 @@ async function runWeeklySteps(
     console.log(`\nSomeday/Maybe: ${somedayFiles.length} projects`);
     for (const file of somedayFiles) {
       const name = file.replace("1-Projects/", "").replace(".md", "");
-      const { action } = await inquirer.prompt([{
-        type: "list",
-        name: "action",
+      const action = await select({
         message: name,
-        choices: ["Activate", "Keep as someday", "Drop"],
-      }]);
-      if (action === "Activate") {
+        choices: [
+          { value: "activate", name: "Activate" },
+          { value: "keep", name: "Keep as someday" },
+          { value: "drop", name: "Drop" },
+        ],
+      });
+      if (action === "activate") {
         const content = await adapter.readNote(file);
         await adapter.writeNote(file, content.replace(/^Status:: someday$/m, "Status:: active"));
-      } else if (action === "Drop") {
+      } else if (action === "drop") {
         await adapter.moveNote(file, file.replace("1-Projects/", "4-Archive/"));
       }
     }
@@ -365,13 +366,9 @@ async function runWeeklySteps(
   for (const area of config.areas) {
     const areaTasks = filterTasks(allTasks, { area });
     console.log(`  ${area}: ${areaTasks.length} open tasks`);
-    const { needsAttention } = await inquirer.prompt([
-      { type: "confirm", name: "needsAttention", message: `${area} needs attention?`, default: false },
-    ]);
+    const needsAttention = await confirm({ message: `${area} needs attention?`, default: false });
     if (needsAttention) {
-      const { note } = await inquirer.prompt([
-        { type: "input", name: "note", message: "Note:" },
-      ]);
+      const note = await input({ message: "Note:" });
       if (note.trim()) areaNotes.push(`${area}: ${note.trim()}`);
     }
   }
@@ -386,15 +383,9 @@ async function runWeeklySteps(
 
   // Step 6: Reflections
   onStep(5);
-  const { wentWell } = await inquirer.prompt([
-    { type: "input", name: "wentWell", message: "\nWhat went well this week?" },
-  ]);
-  const { needsAttention } = await inquirer.prompt([
-    { type: "input", name: "needsAttention", message: "What needs attention?" },
-  ]);
-  const { nextFocus } = await inquirer.prompt([
-    { type: "input", name: "nextFocus", message: "Next week's top focus?" },
-  ]);
+  const wentWell = await input({ message: "\nWhat went well this week?" });
+  const needsAttention = await input({ message: "What needs attention?" });
+  const nextFocus = await input({ message: "Next week's top focus?" });
 
   // Step 7: Generate weekly note
   onStep(6);
@@ -438,15 +429,16 @@ async function runMonthlySteps(
       console.log("\nGoals review:");
       for (const goal of goalItems) {
         if (goal.startsWith("*")) continue; // skip placeholder hints
-        const { status } = await inquirer.prompt([{
-          type: "list",
-          name: "status",
+        const status = await select({
           message: goal,
-          choices: ["On track", "Needs attention", "Achieved", "Drop"],
-        }]);
-        const { note } = await inquirer.prompt([
-          { type: "input", name: "note", message: "Note (blank to skip):" },
-        ]);
+          choices: [
+            { value: "On track", name: "On track" },
+            { value: "Needs attention", name: "Needs attention" },
+            { value: "Achieved", name: "Achieved" },
+            { value: "Drop", name: "Drop" },
+          ],
+        });
+        const note = await input({ message: "Note (blank to skip):" });
         goals.push({ text: goal, status, note: note.trim() });
       }
     }
@@ -464,13 +456,9 @@ async function runMonthlySteps(
       console.log("\nRoles check:");
       for (const role of roleItems) {
         if (role.startsWith("*")) continue;
-        const { score } = await inquirer.prompt([
-          { type: "number", name: "score", message: `${role} presence (1-10):`, default: 5 },
-        ]);
-        const { note } = await inquirer.prompt([
-          { type: "input", name: "note", message: "Note (blank to skip):" },
-        ]);
-        roles.push({ text: role, score, note: note.trim() });
+        const score = await numberPrompt({ message: `${role} presence (1-10):`, default: 5 });
+        const note = await input({ message: "Note (blank to skip):" });
+        roles.push({ text: role, score: score ?? 5, note: note.trim() });
       }
     }
   }
@@ -480,10 +468,8 @@ async function runMonthlySteps(
   const areaHealth: AreaHealthScore[] = [];
   console.log("\nArea health:");
   for (const area of config.areas) {
-    const { score } = await inquirer.prompt([
-      { type: "number", name: "score", message: `${area} health (1-10):`, default: 5 },
-    ]);
-    areaHealth.push({ area, score });
+    const score = await numberPrompt({ message: `${area} health (1-10):`, default: 5 });
+    areaHealth.push({ area, score: score ?? 5 });
   }
 
   // Step 11: Archive sweep
@@ -502,20 +488,20 @@ async function runMonthlySteps(
     console.log(`\nArchive sweep: ${completeCandidates.length} projects with no open tasks`);
     for (const file of completeCandidates) {
       const name = file.replace("1-Projects/", "").replace(".md", "");
-      const { action } = await inquirer.prompt([{
-        type: "list",
-        name: "action",
+      const action = await select({
         message: name,
-        choices: ["Archive", "Keep active", "Add new tasks"],
-      }]);
-      if (action === "Archive") {
+        choices: [
+          { value: "archive", name: "Archive" },
+          { value: "keep", name: "Keep active" },
+          { value: "add", name: "Add new tasks" },
+        ],
+      });
+      if (action === "archive") {
         await adapter.moveNote(file, file.replace("1-Projects/", "4-Archive/"));
         archived.push(name);
         console.log(chalk.green(`  → Archived`));
-      } else if (action === "Add new tasks") {
-        const { task } = await inquirer.prompt([
-          { type: "input", name: "task", message: "New task:" },
-        ]);
+      } else if (action === "add") {
+        const task = await input({ message: "New task:" });
         if (task.trim()) {
           const area = name.split("--")[0] || "personal";
           await adapter.appendToSection(file, "## Next Actions", `- [ ] ${task.trim()} #${area}`);

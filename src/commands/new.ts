@@ -1,6 +1,6 @@
 import type { VaultAdapter } from "../adapters/adapter.js";
 import type { ElmarConfig } from "../core/types.js";
-import inquirer from "inquirer";
+import { select, input } from "@inquirer/prompts";
 
 export async function runNewProject(
   adapter: VaultAdapter,
@@ -10,51 +10,25 @@ export async function runNewProject(
 ): Promise<string> {
   const area =
     options.area ??
-    (
-      await inquirer.prompt([
-        {
-          type: "list",
-          name: "area",
-          message: "Which area does this project belong to?",
-          choices: [...config.areas],
-        },
-      ])
-    ).area;
+    await select({
+      message: "Which area does this project belong to?",
+      choices: config.areas.map((a) => ({ value: a, name: a })),
+    });
 
-  const { outcome } = await inquirer.prompt([
-    {
-      type: "input",
-      name: "outcome",
-      message: "What's the desired outcome?",
-    },
-  ]);
+  const outcome = await input({ message: "What's the desired outcome?" });
 
-  const { firstAction } = await inquirer.prompt([
-    {
-      type: "input",
-      name: "firstAction",
-      message: "What's the first next action?",
-      default: `Define scope for ${name}`,
-    },
-  ]);
+  const firstAction = await input({
+    message: "What's the first next action?",
+    default: `Define scope for ${name}`,
+  });
 
-  const { deadline } = await inquirer.prompt([
-    {
-      type: "input",
-      name: "deadline",
-      message: "Deadline? (YYYY-MM-DD or leave empty)",
-      default: "",
-    },
-  ]);
+  const deadline = await input({
+    message: "Deadline? (YYYY-MM-DD or leave empty)",
+  });
 
-  const { context } = await inquirer.prompt([
-    {
-      type: "input",
-      name: "context",
-      message: "Any initial notes or context?",
-      default: "",
-    },
-  ]);
+  const context = await input({
+    message: "Any initial notes or context?",
+  });
 
   const slug = name.toLowerCase().replace(/\s+/g, "-");
   const filename = `${area}--${slug}.md`;
