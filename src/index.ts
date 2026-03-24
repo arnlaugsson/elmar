@@ -319,7 +319,15 @@ program
     };
 
     try {
+      const headBefore = execSync("git rev-parse HEAD", { cwd: projectRoot }).toString().trim();
       run("git pull");
+      const headAfter = execSync("git rev-parse HEAD", { cwd: projectRoot }).toString().trim();
+
+      if (headBefore === headAfter) {
+        console.log(chalk.green("Already up to date."));
+        return;
+      }
+
       run("npm install");
       run("npm run build");
       run("npm link");
