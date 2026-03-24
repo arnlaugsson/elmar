@@ -88,6 +88,34 @@ export async function linkDailyNote(
   }
 }
 
+export async function backfillDailyNav(
+  adapter: VaultAdapter,
+  dailyNotesFolder: string,
+  monthlyNotesFolder: string,
+  onUpdate?: (date: string) => void
+): Promise<number> {
+  const files = await adapter.listFiles(dailyNotesFolder);
+  const dates = files
+    .map((f) => f.replace(`${dailyNotesFolder}/`, "").replace(".md", ""))
+    .filter((f) => /^\d{4}-\d{2}-\d{2}$/.test(f))
+    .sort();
+
+  for (let i = 0; i < dates.length; i++) {
+    const date = dates[i];
+    const prev = i > 0 ? dates[i - 1] : null;
+    const next = i < dates.length - 1 ? dates[i + 1] : null;
+
+    const notePath = `${dailyNotesFolder}/${date}.md`;
+    const content = await adapter.readNote(notePath);
+    const navBar = buildNavBar(date, monthlyNotesFolder, dailyNotesFolder, prev, next);
+    const updated = replaceOrInsertNav(content, navBar);
+    await adapter.writeNote(notePath, updated);
+    onUpdate?.(date);
+  }
+
+  return dates.length;
+}
+
 export { buildNavBar, replaceOrInsertNav };
 
 export function countBullets(content: string, heading: string): number {

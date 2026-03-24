@@ -34,7 +34,8 @@ Meta flags (use instead of subcommands):
   --migrate         Upgrade vault to the latest version
   --migrate-dry-run Preview migration changes without modifying
   --migrate-yes     Apply all migration fixes without prompting
-  --completion      Output zsh completion script`);
+  --completion      Output zsh completion script
+  --backfill-nav    Add navigation bars to all existing daily notes`);
 
 program
   .command("init")
@@ -430,6 +431,23 @@ compdef _elmar elmar`);
       dryRun: argv.includes("--migrate-dry-run"),
       yes: argv.includes("--migrate-yes"),
     });
+  } catch (err: unknown) {
+    console.error(chalk.red((err as Error).message));
+    process.exit(1);
+  }
+  process.exit(0);
+} else if (argv.includes("--backfill-nav")) {
+  const { backfillDailyNav } = await import("./core/daily-note.js");
+  try {
+    const config = loadConfig();
+    const adapter = resolveAdapter(config);
+    const count = await backfillDailyNav(
+      adapter,
+      config.dailyNotesFolder,
+      config.monthlyNotesFolder,
+      (date) => console.log(chalk.dim(`  Updated ${date}`))
+    );
+    console.log(chalk.green(`\nNavigation added to ${count} daily notes.`));
   } catch (err: unknown) {
     console.error(chalk.red((err as Error).message));
     process.exit(1);
