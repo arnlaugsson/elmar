@@ -1,5 +1,5 @@
 import type { VaultAdapter } from "../adapters/adapter.js";
-import { getInlineField } from "../core/markdown-utils.js";
+import { getFrontmatterField } from "../core/markdown-utils.js";
 
 export interface ProjectInfo {
   readonly name: string;
@@ -19,8 +19,8 @@ export async function listProjects(
   for (const file of files) {
     if (!file.endsWith(".md")) continue;
     const content = await adapter.readNote(file);
-    const status = getInlineField(content, "Status") ?? "unknown";
-    const area = getInlineField(content, "Area") ?? "unknown";
+    const status = getFrontmatterField(content, "status") ?? "unknown";
+    const area = getFrontmatterField(content, "area") ?? "unknown";
     const name = file.replace("1-Projects/", "").replace(".md", "");
     const openTasks = content.split("\n").filter((l) => l.trimStart().startsWith("- [ ]")).length;
 

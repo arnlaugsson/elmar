@@ -15,8 +15,10 @@ describe("collectTasks", () => {
 
     writeFileSync(
       join(vaultPath, "1-Projects", "work--api.md"),
-      `# API Redesign
-Status:: active
+      `---
+status: active
+---
+# API Redesign
 
 ## Next Actions
 - [ ] Draft spec #work
@@ -27,8 +29,10 @@ Status:: active
 
     writeFileSync(
       join(vaultPath, "1-Projects", "family--trip.md"),
-      `# Summer Trip
-Status:: active
+      `---
+status: active
+---
+# Summer Trip
 
 ## Next Actions
 - [ ] Book flights #family
@@ -37,8 +41,10 @@ Status:: active
 
     writeFileSync(
       join(vaultPath, "1-Projects", "personal--someday.md"),
-      `# Learn Piano
-Status:: someday
+      `---
+status: someday
+---
+# Learn Piano
 
 ## Next Actions
 - [ ] Find teacher #personal

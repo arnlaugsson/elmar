@@ -50,7 +50,7 @@ describe("runStatus", () => {
   it("reports only unfilled metrics as gaps when daily note exists", async () => {
     writeFileSync(
       join(vaultPath, "Journal", "2026-03-23.md"),
-      `# 2026-03-23\n\n## Tracking\nsleep:: 85\nreading::\ngrateful::\n\n## Notes\n`
+      `---\nsleep: 85\nreading: ""\ngrateful: ""\n---\n# 2026-03-23\n\n## Notes\n`
     );
     const summary = await runStatus(adapter, vaultPath, "0-Inbox/inbox.md", "_System", "2026-03-23");
     expect(summary.todayTrackingGaps).toEqual(["reading", "grateful"]);

@@ -147,9 +147,11 @@ export class MarkdownAdapter implements VaultAdapter {
     if (existsSync(registryPath)) {
       const registry = JSON.parse(readFileSync(registryPath, "utf-8"));
       const trackingFields = registry.metrics
-        .map((m: { key: string }) => `${m.key}::`)
+        .map((m: { key: string }) => `${m.key}: ""`)
         .join("\n");
       template = template.replace("{{tracking_fields}}", trackingFields);
+    } else {
+      template = template.replace("{{tracking_fields}}\n", "");
     }
 
     await this.createNote(notePath, template);

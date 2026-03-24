@@ -1,5 +1,5 @@
 import type { VaultAdapter } from "../adapters/adapter.js";
-import { findSectionRange } from "./markdown-utils.js";
+import { findSectionRange, setFrontmatterField } from "./markdown-utils.js";
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
@@ -125,17 +125,7 @@ export function getDow(date: string): string {
 
 function ensureDow(content: string, date: string): string {
   const dow = getDow(date);
-  const dowPattern = /^dow::.*$/m;
-  if (dowPattern.test(content)) {
-    return content.replace(dowPattern, `dow:: ${dow}`);
-  }
-  // Insert after heading
-  const lines = content.split("\n");
-  const headingIdx = lines.findIndex((l) => l.startsWith("# "));
-  if (headingIdx === -1) return content;
-  const result = [...lines];
-  result.splice(headingIdx + 1, 0, `dow:: ${dow}`);
-  return result.join("\n");
+  return setFrontmatterField(content, "dow", dow);
 }
 
 export { buildNavBar, replaceOrInsertNav, ensureDow };

@@ -35,15 +35,16 @@ export async function runNewProject(
   const filepath = `1-Projects/${filename}`;
   const today = new Date().toISOString().slice(0, 10);
 
-  const deadlineLine = deadline ? `Deadline:: ${deadline}\n` : "";
+  const deadlineLine = deadline ? `\ndeadline: ${deadline}` : "";
 
-  const content = `# ${name}
+  const content = `---
+status: active
+area: ${area}
+outcome: ${outcome}
+created: ${today}${deadlineLine}
+---
+# ${name}
 
-Status:: active
-Area:: ${area}
-Outcome:: ${outcome}
-Created: ${today}
-${deadlineLine}
 ## Next Actions
 - [ ] ${firstAction} #${area}${deadline ? ` 📅 ${deadline}` : ""}
 

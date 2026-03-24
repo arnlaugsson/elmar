@@ -26,8 +26,8 @@ const REGISTRY = {
 };
 
 function dailyNote(fields: Record<string, string>): string {
-  const lines = Object.entries(fields).map(([k, v]) => `${k}:: ${v}`);
-  return `# Test\n\n## Tracking\n${lines.join("\n")}`;
+  const lines = Object.entries(fields).map(([k, v]) => `${k}: ${v}`);
+  return `---\n${lines.join("\n")}\n---\n# Test`;
 }
 
 describe("runMetrics", () => {

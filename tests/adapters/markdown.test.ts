@@ -21,7 +21,7 @@ describe("MarkdownAdapter", () => {
 
     writeFileSync(
       join(vaultPath, "Templates", "daily-note-cli.md"),
-      "# {{date}}\n\n## Journal\n\n## Tracking\n{{tracking_fields}}\n"
+      "---\n{{tracking_fields}}\n---\n# {{date}}\n\n## Journal\n"
     );
 
     writeFileSync(
@@ -119,7 +119,7 @@ describe("MarkdownAdapter", () => {
       const content = await adapter.readNote(path);
       expect(content).toContain("2026-03-21");
       expect(content).toContain("## Journal");
-      expect(content).toContain("sleep::");
+      expect(content).toContain("sleep:");
     });
 
     it("returns existing daily note path without overwriting", async () => {

@@ -1,6 +1,7 @@
 import type { VaultAdapter } from "../adapters/adapter.js";
 import { collectTasks } from "./tasks.js";
 import { loadRegistry } from "../core/metric-registry.js";
+import { parseFrontmatter } from "../core/markdown-utils.js";
 import { join } from "node:path";
 
 export interface StatusSummary {
@@ -39,22 +40,13 @@ export async function runStatus(
   const dailyNotePath = `Journal/${date}.md`;
   if (await adapter.noteExists(dailyNotePath)) {
     const content = await adapter.readNote(dailyNotePath);
-    const lines = content.split("\n");
-    trackingGaps = [];
-    let inTracking = false;
-    for (const line of lines) {
-      if (line.trim() === "## Tracking") {
-        inTracking = true;
-        continue;
-      }
-      if (line.startsWith("##") && inTracking) break;
-      if (inTracking) {
-        const match = line.match(/^(\w+)::$/);
-        if (match) {
-          trackingGaps.push(match[1]);
-        }
-      }
-    }
+    const { fields } = parseFrontmatter(content);
+    trackingGaps = registry.metrics
+      .filter((m) => {
+        const val = fields[m.key];
+        return val === undefined || val === "" || val === '""';
+      })
+      .map((m) => m.key);
   } else {
     trackingGaps = registry.metrics.map((m) => m.key);
   }

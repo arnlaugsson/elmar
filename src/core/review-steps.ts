@@ -1,6 +1,6 @@
 import type { VaultAdapter } from "../adapters/adapter.js";
 import { loadRegistry } from "./metric-registry.js";
-import { getInlineField } from "./markdown-utils.js";
+import { getFrontmatterField } from "./markdown-utils.js";
 import { join } from "node:path";
 
 export interface InboxItem {
@@ -50,7 +50,7 @@ export async function aggregateMetrics(
       if (!(await adapter.noteExists(notePath))) continue;
 
       const content = await adapter.readNote(notePath);
-      const val = getInlineField(content, metric.key);
+      const val = getFrontmatterField(content, metric.key);
 
       if (val !== null) {
         if (metric.type === "number") {

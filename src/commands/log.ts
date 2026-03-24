@@ -5,7 +5,7 @@ import {
   getMetric,
   validateMetricValue,
 } from "../core/metric-registry.js";
-import { setInlineField } from "../core/markdown-utils.js";
+import { setFrontmatterField } from "../core/markdown-utils.js";
 import { countBullets } from "../core/daily-note.js";
 
 export async function runLog(
@@ -56,9 +56,9 @@ export async function runLog(
     }
 
     const bulletCount = countBullets(content, sectionHeading);
-    content = setInlineField(content, key, String(bulletCount));
+    content = setFrontmatterField(content, key, String(bulletCount));
   } else {
-    content = setInlineField(content, key, value);
+    content = setFrontmatterField(content, key, value);
   }
 
   await adapter.writeNote(notePath, content);

@@ -1,5 +1,5 @@
 import type { VaultAdapter } from "../adapters/adapter.js";
-import { setInlineField } from "../core/markdown-utils.js";
+import { setFrontmatterField } from "../core/markdown-utils.js";
 import { countSectionChars } from "../core/daily-note.js";
 
 export async function runJournal(
@@ -13,6 +13,6 @@ export async function runJournal(
 
   const content = await adapter.readNote(notePath);
   const charCount = countSectionChars(content, "## Journal");
-  const updated = setInlineField(content, "journal", String(charCount));
+  const updated = setFrontmatterField(content, "journal", String(charCount));
   await adapter.writeNote(notePath, updated);
 }

@@ -26,7 +26,7 @@ import { collectTasks, filterTasks } from "./tasks.js";
 import { runLog } from "./log.js";
 import { snoozeDueDate } from "../core/task-date-utils.js";
 import { loadRegistry } from "../core/metric-registry.js";
-import { getInlineField } from "../core/markdown-utils.js";
+import { getFrontmatterField, setFrontmatterField } from "../core/markdown-utils.js";
 import { runNewProject } from "./new.js";
 import { join } from "node:path";
 import chalk from "chalk";
@@ -183,7 +183,7 @@ async function runDailySteps(
   const gaps: string[] = [];
   const filled: { key: string; value: string }[] = [];
   for (const metric of registry.metrics) {
-    const val = getInlineField(noteContent, metric.key);
+    const val = getFrontmatterField(noteContent, metric.key);
     if (val === null) {
       gaps.push(metric.key);
     } else {
@@ -334,7 +334,7 @@ async function runWeeklySteps(
   console.log(`\nReviewing ${projectFiles.length} projects...`);
   for (const file of projectFiles) {
     const content = await adapter.readNote(file);
-    if (!content.includes("Status:: active")) continue;
+    if (getFrontmatterField(content, "status") !== "active") continue;
 
     const name = file.replace("1-Projects/", "").replace(".md", "");
     const openTasks = content.split("\n").filter((l) => l.match(/^- \[ \]/)).length;
@@ -349,7 +349,7 @@ async function runWeeklySteps(
     });
 
     if (action === "someday") {
-      const updated = content.replace(/^Status:: active$/m, "Status:: someday");
+      const updated = setFrontmatterField(content, "status", "someday");
       await adapter.writeNote(file, updated);
       projectDecisions.push({ name, decision: "→ Someday" });
     } else if (action === "archive") {
@@ -373,7 +373,7 @@ async function runWeeklySteps(
   for (const file of projectFiles) {
     if (!(await adapter.noteExists(file))) continue;
     const content = await adapter.readNote(file);
-    if (content.includes("Status:: someday")) somedayFiles.push(file);
+    if (getFrontmatterField(content, "status") === "someday") somedayFiles.push(file);
   }
   if (somedayFiles.length > 0) {
     console.log(`\nSomeday/Maybe: ${somedayFiles.length} projects`);
@@ -389,7 +389,7 @@ async function runWeeklySteps(
       });
       if (action === "activate") {
         const content = await adapter.readNote(file);
-        await adapter.writeNote(file, content.replace(/^Status:: someday$/m, "Status:: active"));
+        await adapter.writeNote(file, setFrontmatterField(content, "status", "active"));
       } else if (action === "drop") {
         await adapter.moveNote(file, file.replace("1-Projects/", "4-Archive/"));
       }
@@ -517,7 +517,7 @@ async function runMonthlySteps(
   const completeCandidates: string[] = [];
   for (const file of projectFiles) {
     const content = await adapter.readNote(file);
-    if (!content.includes("Status:: active")) continue;
+    if (getFrontmatterField(content, "status") !== "active") continue;
     const hasOpenTasks = content.split("\n").some((l) => l.match(/^- \[ \]/));
     if (!hasOpenTasks) completeCandidates.push(file);
   }

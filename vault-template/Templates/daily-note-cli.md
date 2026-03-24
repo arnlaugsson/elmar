@@ -1,14 +1,14 @@
+---
+dow: {{dow}}
+{{tracking_fields}}
+---
 # {{date}}
-dow:: {{dow}}
 
 ## Journal
 <!-- Free writing -->
 
 ## Gratitude
 -
-
-## Tracking
-{{tracking_fields}}
 
 ## Tasks
 - [ ]

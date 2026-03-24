@@ -36,9 +36,9 @@ describe("aggregateMetrics", () => {
       ],
     }));
     writeFileSync(join(vaultPath, "Journal", "2026-03-20.md"),
-      "# 2026-03-20\n\n## Tracking\nsleep:: 80\nreading:: 30\n");
+      "---\nsleep: 80\nreading: 30\n---\n# 2026-03-20\n");
     writeFileSync(join(vaultPath, "Journal", "2026-03-21.md"),
-      "# 2026-03-21\n\n## Tracking\nsleep:: 90\nreading:: 45\n");
+      "---\nsleep: 90\nreading: 45\n---\n# 2026-03-21\n");
     adapter = new MarkdownAdapter(vaultPath, {
       dailyNotesFolder: "Journal",
       templatesFolder: "Templates",

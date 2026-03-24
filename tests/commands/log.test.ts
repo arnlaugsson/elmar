@@ -9,18 +9,18 @@ describe("runLog", () => {
   const vaultPath = join(tmpdir(), "elmar-test-log-" + Date.now());
   let adapter: MarkdownAdapter;
 
-  const dailyNote = `# 2026-03-21
+  const dailyNote = `---
+sleep: ""
+reading: ""
+grateful: ""
+---
+# 2026-03-21
 
 ## Journal
 <!-- Free writing -->
 
 ## Gratitude
 -
-
-## Tracking
-sleep::
-reading::
-grateful::
 
 ## Tasks
 
@@ -43,7 +43,7 @@ grateful::
     writeFileSync(join(vaultPath, "_System", "metrics.json"), JSON.stringify(registry));
     writeFileSync(
       join(vaultPath, "Templates", "daily-note-cli.md"),
-      "# {{date}}\n\n## Tracking\n{{tracking_fields}}\n"
+      "---\n{{tracking_fields}}\n---\n# {{date}}\n"
     );
     adapter = new MarkdownAdapter(vaultPath, {
       dailyNotesFolder: "Journal",
@@ -59,7 +59,7 @@ grateful::
   it("logs a number metric", async () => {
     await runLog(adapter, vaultPath, "_System", "sleep", "85", "2026-03-21");
     const content = readFileSync(join(vaultPath, "Journal", "2026-03-21.md"), "utf-8");
-    expect(content).toContain("sleep:: 85");
+    expect(content).toContain("sleep: 85");
   });
 
   it("rejects out of range value", async () => {
@@ -78,6 +78,6 @@ grateful::
     await runLog(adapter, vaultPath, "_System", "grateful", "sunshine", "2026-03-21");
     const content = readFileSync(join(vaultPath, "Journal", "2026-03-21.md"), "utf-8");
     expect(content).toContain("- sunshine");
-    expect(content).toContain("grateful:: 1");
+    expect(content).toContain("grateful: 1");
   });
 });

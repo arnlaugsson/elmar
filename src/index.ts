@@ -35,7 +35,8 @@ Meta flags (use instead of subcommands):
   --migrate-dry-run Preview migration changes without modifying
   --migrate-yes     Apply all migration fixes without prompting
   --completion      Output zsh completion script
-  --backfill-nav    Add navigation bars to all existing daily notes`);
+  --backfill-nav    Add navigation bars to all existing daily notes
+  --backfill-frontmatter  Migrate inline fields to YAML frontmatter`);
 
 program
   .command("init")
@@ -448,6 +449,58 @@ compdef _elmar elmar`);
       (date) => console.log(chalk.dim(`  Updated ${date}`))
     );
     console.log(chalk.green(`\nNavigation added to ${count} daily notes.`));
+  } catch (err: unknown) {
+    console.error(chalk.red((err as Error).message));
+    process.exit(1);
+  }
+  process.exit(0);
+} else if (argv.includes("--backfill-frontmatter")) {
+  const { inlineFieldsToFrontmatter } = await import("./core/markdown-utils.js");
+  try {
+    const config = loadConfig();
+    const adapter = resolveAdapter(config);
+    let count = 0;
+
+    // Migrate daily notes
+    const dailyFiles = await adapter.listFiles(config.dailyNotesFolder);
+    for (const file of dailyFiles) {
+      if (!file.endsWith(".md")) continue;
+      const content = await adapter.readNote(file);
+      const updated = inlineFieldsToFrontmatter(content);
+      if (updated !== content) {
+        await adapter.writeNote(file, updated);
+        console.log(chalk.dim(`  ${file}`));
+        count++;
+      }
+    }
+
+    // Migrate project notes
+    const projectFiles = await adapter.listFiles("1-Projects");
+    for (const file of projectFiles) {
+      if (!file.endsWith(".md")) continue;
+      const content = await adapter.readNote(file);
+      const updated = inlineFieldsToFrontmatter(content);
+      if (updated !== content) {
+        await adapter.writeNote(file, updated);
+        console.log(chalk.dim(`  ${file}`));
+        count++;
+      }
+    }
+
+    // Migrate area notes
+    const areaFiles = await adapter.listFiles("2-Areas");
+    for (const file of areaFiles) {
+      if (!file.endsWith(".md")) continue;
+      const content = await adapter.readNote(file);
+      const updated = inlineFieldsToFrontmatter(content);
+      if (updated !== content) {
+        await adapter.writeNote(file, updated);
+        console.log(chalk.dim(`  ${file}`));
+        count++;
+      }
+    }
+
+    console.log(chalk.green(`\nMigrated ${count} files to frontmatter.`));
   } catch (err: unknown) {
     console.error(chalk.red((err as Error).message));
     process.exit(1);

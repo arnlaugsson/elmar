@@ -1,7 +1,7 @@
 import type { VaultAdapter } from "../adapters/adapter.js";
 import type { MetricRegistry } from "../core/types.js";
 import { loadRegistry } from "../core/metric-registry.js";
-import { getInlineField } from "../core/markdown-utils.js";
+import { getFrontmatterField } from "../core/markdown-utils.js";
 import { getDatesInRange } from "../core/review-steps.js";
 import { join } from "node:path";
 import chalk from "chalk";
@@ -77,7 +77,7 @@ export async function runMetrics(
     if (metric.type === "number") {
       const values = dayData.map((d) => {
         if (d.content === null) return null;
-        const raw = getInlineField(d.content, metric.key);
+        const raw = getFrontmatterField(d.content, metric.key);
         if (raw === null) return null;
         const num = Number(raw);
         return isNaN(num) ? null : num;
@@ -104,13 +104,13 @@ export async function runMetrics(
     } else {
       const filledDays = dayData.filter((d) => {
         if (d.content === null) return false;
-        return getInlineField(d.content, metric.key) !== null;
+        return getFrontmatterField(d.content, metric.key) !== null;
       }).length;
 
       const bar = dayData
         .map((d) => {
           if (d.content === null) return chalk.dim("·");
-          const val = getInlineField(d.content, metric.key);
+          const val = getFrontmatterField(d.content, metric.key);
           return val !== null ? chalk.green("■") : chalk.dim("·");
         })
         .join("");

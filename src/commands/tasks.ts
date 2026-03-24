@@ -1,6 +1,7 @@
 import type { VaultAdapter } from "../adapters/adapter.js";
 import type { TaskItem } from "../core/types.js";
 import { parseTasks } from "../core/task-parser.js";
+import { getFrontmatterField } from "../core/markdown-utils.js";
 
 interface TaskFilter {
   readonly area?: string;
@@ -21,7 +22,7 @@ export async function collectTasks(
     for (const file of files) {
       const content = await adapter.readNote(file);
 
-      if (folder === "1-Projects" && content.includes("Status:: someday")) {
+      if (folder === "1-Projects" && getFrontmatterField(content, "status") === "someday") {
         continue;
       }
 
