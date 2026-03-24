@@ -44,7 +44,7 @@ export async function runReview(
   const today = new Date().toISOString().slice(0, 10);
 
   if (opts.fresh) {
-    state = { ...state, interrupted: null };
+    state = { lastDaily: "", lastWeekly: state.lastWeekly, lastMonthly: state.lastMonthly, interrupted: null };
   }
 
   if (state.interrupted) {

@@ -231,7 +231,7 @@ program
 program
   .command("review")
   .description("Interactive review (daily/weekly/monthly)")
-  .option("--fresh", "Ignore interrupted state, start fresh")
+  .option("--fresh", "Reset daily state and start fresh")
   .action(async (opts) => {
     try {
       const config = loadConfig();
