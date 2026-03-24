@@ -256,4 +256,30 @@ program
     );
   });
 
+program
+  .command("update")
+  .description("Pull latest code, rebuild, and relink the CLI")
+  .action(async () => {
+    const { execSync } = await import("node:child_process");
+    const { fileURLToPath } = await import("node:url");
+    const { dirname } = await import("node:path");
+    const projectRoot = dirname(dirname(fileURLToPath(import.meta.url)));
+
+    const run = (cmd: string) => {
+      console.log(chalk.dim(`$ ${cmd}`));
+      execSync(cmd, { cwd: projectRoot, stdio: "inherit" });
+    };
+
+    try {
+      run("git pull");
+      run("npm install");
+      run("npm run build");
+      run("npm link");
+      console.log(chalk.green("\n✓ Elmar updated to latest version."));
+    } catch {
+      console.error(chalk.red("Update failed. Check the output above."));
+      process.exit(1);
+    }
+  });
+
 program.parse();
