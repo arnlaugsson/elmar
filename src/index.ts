@@ -11,6 +11,7 @@ import { runDone } from "./commands/done.js";
 import { runStatus } from "./commands/status.js";
 import { runNewProject } from "./commands/new.js";
 import { runMigrate } from "./commands/migrate.js";
+import { runReview } from "./commands/review.js";
 import { getCliVersion } from "./core/migrations.js";
 import chalk from "chalk";
 import { homedir } from "node:os";
@@ -229,15 +230,17 @@ program
 
 program
   .command("review")
-  .description("Interactive weekly review")
-  .option("--resume", "Resume a previously interrupted review")
-  .action(async () => {
-    console.log(
-      chalk.yellow(
-        "The interactive weekly review is not yet implemented.\n" +
-        "For now, use Obsidian to review your projects and inbox manually."
-      )
-    );
+  .description("Interactive review (daily/weekly/monthly)")
+  .option("--fresh", "Ignore interrupted state, start fresh")
+  .action(async (opts) => {
+    try {
+      const config = loadConfig();
+      const adapter = resolveAdapter(config);
+      await runReview(adapter, config, { fresh: opts.fresh });
+    } catch (err: unknown) {
+      console.error(chalk.red((err as Error).message));
+      process.exit(1);
+    }
   });
 
 program
