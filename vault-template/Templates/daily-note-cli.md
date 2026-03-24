@@ -1,4 +1,5 @@
 # {{date}}
+dow:: {{dow}}
 
 ## Journal
 <!-- Free writing -->

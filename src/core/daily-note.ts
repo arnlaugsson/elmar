@@ -108,7 +108,8 @@ export async function backfillDailyNav(
     const notePath = `${dailyNotesFolder}/${date}.md`;
     const content = await adapter.readNote(notePath);
     const navBar = buildNavBar(date, monthlyNotesFolder, dailyNotesFolder, prev, next);
-    const updated = replaceOrInsertNav(content, navBar);
+    const withNav = replaceOrInsertNav(content, navBar);
+    const updated = ensureDow(withNav, date);
     await adapter.writeNote(notePath, updated);
     onUpdate?.(date);
   }
@@ -116,7 +117,28 @@ export async function backfillDailyNav(
   return dates.length;
 }
 
-export { buildNavBar, replaceOrInsertNav };
+const DOW_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+export function getDow(date: string): string {
+  return DOW_NAMES[new Date(date + "T12:00:00").getDay()];
+}
+
+function ensureDow(content: string, date: string): string {
+  const dow = getDow(date);
+  const dowPattern = /^dow::.*$/m;
+  if (dowPattern.test(content)) {
+    return content.replace(dowPattern, `dow:: ${dow}`);
+  }
+  // Insert after heading
+  const lines = content.split("\n");
+  const headingIdx = lines.findIndex((l) => l.startsWith("# "));
+  if (headingIdx === -1) return content;
+  const result = [...lines];
+  result.splice(headingIdx + 1, 0, `dow:: ${dow}`);
+  return result.join("\n");
+}
+
+export { buildNavBar, replaceOrInsertNav, ensureDow };
 
 export function countBullets(content: string, heading: string): number {
   const range = findSectionRange(content, heading);

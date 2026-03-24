@@ -137,6 +137,10 @@ export class MarkdownAdapter implements VaultAdapter {
     let template = readFileSync(templatePath, "utf-8");
     template = template.replace(/\{\{date\}\}/g, date);
 
+    const DOW_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const dow = DOW_NAMES[new Date(date + "T12:00:00").getDay()];
+    template = template.replace(/\{\{dow\}\}/g, dow);
+
     const registryPath = this.resolve(
       join(this.options.systemFolder, "metrics.json")
     );
