@@ -342,4 +342,81 @@ program
     }
   });
 
+program
+  .command("completion")
+  .description("Output zsh completion script (eval \"$(elmar completion)\")")
+  .action(() => {
+    console.log(`#compdef elmar
+
+_elmar() {
+  local -a commands
+  commands=(
+    'init:Set up a new Elmar vault'
+    'capture:Quick capture to inbox'
+    'tasks:List tasks across all projects'
+    'log:Log a metric to today\\'s daily note'
+    'journal:Append to today\\'s journal'
+    'done:Mark a task as complete'
+    'new:Create a new project'
+    'status:Show overview of inbox, tasks, and tracking'
+    'migrate:Upgrade vault to the latest version'
+    'review:Interactive review (daily/weekly/monthly)'
+    'projects:List projects'
+    'open:Open a project in your editor or Obsidian'
+    'metrics:Show metric trends'
+    'update:Pull latest code, rebuild, and relink the CLI'
+    'completion:Output zsh completion script'
+  )
+
+  _arguments -C \\
+    '1:command:->command' \\
+    '*::arg:->args'
+
+  case $state in
+    command)
+      _describe 'elmar command' commands
+      ;;
+    args)
+      case $words[1] in
+        tasks)
+          _arguments \\
+            '--area[Filter by area]:area:' \\
+            '--due[Show tasks due on or before date]:date:' \\
+            '--waiting[Show only waiting-for tasks]' \\
+            '--all[Include completed tasks]'
+          ;;
+        review)
+          _arguments '--fresh[Reset daily state and start fresh]'
+          ;;
+        projects)
+          _arguments \\
+            '--status[Filter by status]:status:(active someday)' \\
+            '--area[Filter by area]:area:' \\
+            '--all[Show all statuses]'
+          ;;
+        open)
+          _arguments '--obsidian[Open in Obsidian instead of editor]'
+          ;;
+        migrate)
+          _arguments \\
+            '--dry-run[Preview changes without modifying the vault]' \\
+            '--yes[Apply all fixes without prompting]'
+          ;;
+        new)
+          _arguments \\
+            '1:type:(project)' \\
+            '2:name:' \\
+            '--area[Area]:area:(work personal family finance)'
+          ;;
+        metrics)
+          _arguments '--days[Number of days to show]:days:'
+          ;;
+      esac
+      ;;
+  esac
+}
+
+compdef _elmar elmar`);
+  });
+
 program.parse();
