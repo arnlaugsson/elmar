@@ -212,7 +212,7 @@ async function processInboxItems(
 ): Promise<void> {
   const choices = mandatory
     ? ["Move to project", "Create task", "Archive", "Delete"]
-    : ["Move to project", "Create task", "Skip"];
+    : ["Skip", "Move to project", "Create task"];
 
   const inboxContent = await adapter.readNote(config.inboxFile);
   const linesToRemove: number[] = [];
