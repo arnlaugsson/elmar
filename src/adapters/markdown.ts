@@ -12,11 +12,13 @@ import { join, dirname, relative } from "node:path";
 import type { VaultAdapter } from "./adapter.js";
 import type { SearchResult } from "../core/types.js";
 import { appendToSection as appendToSectionUtil } from "../core/markdown-utils.js";
+import { linkDailyNote } from "../core/daily-note.js";
 
 interface MarkdownAdapterOptions {
   readonly dailyNotesFolder: string;
   readonly templatesFolder: string;
   readonly systemFolder: string;
+  readonly monthlyNotesFolder: string;
 }
 
 export class MarkdownAdapter implements VaultAdapter {
@@ -147,6 +149,12 @@ export class MarkdownAdapter implements VaultAdapter {
     }
 
     await this.createNote(notePath, template);
+    await linkDailyNote(
+      this,
+      this.options.dailyNotesFolder,
+      this.options.monthlyNotesFolder,
+      date
+    );
     return notePath;
   }
 }

@@ -7,5 +7,6 @@ export function resolveAdapter(config: ElmarConfig): VaultAdapter {
     dailyNotesFolder: config.dailyNotesFolder,
     templatesFolder: config.templatesFolder,
     systemFolder: config.systemFolder,
+    monthlyNotesFolder: config.monthlyNotesFolder,
   });
 }
