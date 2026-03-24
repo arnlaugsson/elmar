@@ -12,6 +12,7 @@ import { runStatus } from "./commands/status.js";
 import { runNewProject } from "./commands/new.js";
 import { runMigrate } from "./commands/migrate.js";
 import { runReview } from "./commands/review.js";
+import { listProjects } from "./commands/projects.js";
 import { getCliVersion } from "./core/migrations.js";
 import chalk from "chalk";
 import { homedir } from "node:os";
@@ -237,6 +238,36 @@ program
       const config = loadConfig();
       const adapter = resolveAdapter(config);
       await runReview(adapter, config, { fresh: opts.fresh });
+    } catch (err: unknown) {
+      console.error(chalk.red((err as Error).message));
+      process.exit(1);
+    }
+  });
+
+program
+  .command("projects")
+  .description("List projects")
+  .option("--status <status>", "Filter by status (active, someday)")
+  .option("--area <area>", "Filter by area")
+  .option("--all", "Show all statuses (default: active only)")
+  .action(async (opts) => {
+    try {
+      const config = loadConfig();
+      const adapter = resolveAdapter(config);
+      const statusFilter = opts.all ? undefined : (opts.status ?? "active");
+      const projects = await listProjects(adapter, { status: statusFilter, area: opts.area });
+
+      if (projects.length === 0) {
+        console.log(chalk.dim("No projects found."));
+        return;
+      }
+
+      for (const p of projects) {
+        const area = chalk.cyan(`[${p.area}]`);
+        const tasks = p.openTasks > 0 ? chalk.dim(` (${p.openTasks} tasks)`) : chalk.dim(" (no tasks)");
+        const status = p.status !== "active" ? chalk.yellow(` [${p.status}]`) : "";
+        console.log(`${area} ${p.name}${tasks}${status}`);
+      }
     } catch (err: unknown) {
       console.error(chalk.red((err as Error).message));
       process.exit(1);
