@@ -14,6 +14,7 @@ import { runMigrate } from "./commands/migrate.js";
 import { runReview } from "./commands/review.js";
 import { listProjects } from "./commands/projects.js";
 import { runOpen } from "./commands/open.js";
+import { runMetrics } from "./commands/metrics.js";
 import { getCliVersion, collectPendingMigrations } from "./core/migrations.js";
 import chalk from "chalk";
 import { homedir } from "node:os";
@@ -291,13 +292,15 @@ program
   .command("metrics")
   .description("Show metric trends")
   .option("--days <n>", "Number of days to show", "7")
-  .action(async () => {
-    console.log(
-      chalk.yellow(
-        "Metric trend display is not yet implemented.\n" +
-        "View trends in Obsidian using the _System/dashboard.md note."
-      )
-    );
+  .action(async (opts) => {
+    try {
+      const config = loadConfig();
+      const adapter = resolveAdapter(config);
+      await runMetrics(adapter, config.vaultPath, config.systemFolder, Number(opts.days));
+    } catch (err: unknown) {
+      console.error(chalk.red((err as Error).message));
+      process.exit(1);
+    }
   });
 
 // Handle meta flags before Commander processes subcommands
