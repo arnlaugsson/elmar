@@ -63,6 +63,8 @@ export async function runMetrics(
     return;
   }
 
+  const labelWidth = Math.max(...registry.metrics.map((m) => m.label.length)) + 2;
+
   console.log(
     chalk.bold(`Metrics — last ${days} days`) +
       chalk.dim(` (${dates[0]} → ${dates[dates.length - 1]})`)
@@ -70,6 +72,8 @@ export async function runMetrics(
   console.log();
 
   for (const metric of registry.metrics) {
+    const label = chalk.cyan(metric.label.padEnd(labelWidth));
+
     if (metric.type === "number") {
       const values = dayData.map((d) => {
         if (d.content === null) return null;
@@ -81,9 +85,7 @@ export async function runMetrics(
 
       const filled = values.filter((v): v is number => v !== null);
       if (filled.length === 0) {
-        console.log(
-          `  ${chalk.cyan(metric.label.padEnd(14))} ${chalk.dim("no data")}`
-        );
+        console.log(`  ${label} ${chalk.dim("no data")}`);
         continue;
       }
 
@@ -94,7 +96,7 @@ export async function runMetrics(
       const spark = sparkline(values);
 
       console.log(
-        `  ${chalk.cyan(metric.label.padEnd(14))} ${spark}  ` +
+        `  ${label} ${spark}  ` +
           `avg ${chalk.bold(String(avg))}${unit}  ` +
           chalk.dim(`${min}–${max}`) +
           chalk.dim(`  (${filled.length}/${days}d)`)
@@ -114,8 +116,7 @@ export async function runMetrics(
         .join("");
 
       console.log(
-        `  ${chalk.cyan(metric.label.padEnd(14))} ${bar}  ` +
-          chalk.dim(`${filledDays}/${days} days`)
+        `  ${label} ${bar}  ` + chalk.dim(`${filledDays}/${days} days`)
       );
     }
   }
