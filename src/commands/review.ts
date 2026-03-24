@@ -26,6 +26,7 @@ import { collectTasks, filterTasks } from "./tasks.js";
 import { runLog } from "./log.js";
 import { snoozeDueDate } from "../core/task-date-utils.js";
 import { loadRegistry } from "../core/metric-registry.js";
+import { getInlineField } from "../core/markdown-utils.js";
 import { runNewProject } from "./new.js";
 import { join } from "node:path";
 import chalk from "chalk";
@@ -167,16 +168,21 @@ async function runDailySteps(
     console.log(chalk.green("\nNo tasks due today."));
   }
 
-  // Step 3: Tracking gaps
+  // Step 3: Tracking
   onStep(2);
   const registry = loadRegistry(join(config.vaultPath, config.systemFolder, "metrics.json"));
   const notePath = await adapter.ensureDailyNote(today);
   const noteContent = await adapter.readNote(notePath);
+
   const gaps: string[] = [];
+  const filled: { key: string; value: string }[] = [];
   for (const metric of registry.metrics) {
-    const lines = noteContent.split("\n");
-    const fieldLine = lines.find((l) => l.match(new RegExp(`^${metric.key}::$`)));
-    if (fieldLine) gaps.push(metric.key);
+    const val = getInlineField(noteContent, metric.key);
+    if (val === null) {
+      gaps.push(metric.key);
+    } else {
+      filled.push({ key: metric.key, value: val });
+    }
   }
 
   if (gaps.length > 0) {
@@ -199,6 +205,29 @@ async function runDailySteps(
     }
   } else {
     console.log(chalk.green("\nAll metrics logged for today."));
+  }
+
+  if (filled.length > 0) {
+    console.log(chalk.dim(`\nAlready logged: ${filled.map((f) => `${f.key}=${f.value}`).join(", ")}`));
+    const updateExisting = await confirm({ message: "Update any logged metrics?", default: false });
+    if (updateExisting) {
+      const keyToUpdate = await select({
+        message: "Which metric?",
+        choices: filled.map((f) => ({ value: f.key, name: `${f.key} (current: ${f.value})` })),
+      });
+      const metric = registry.metrics.find((m) => m.key === keyToUpdate);
+      if (metric) {
+        const label = metric.range ? `${metric.label} (${metric.range[0]}-${metric.range[1]})` : metric.label;
+        const useEditor = metric.type === "text";
+        const value = useEditor
+          ? await editor({ message: `${label}:` })
+          : await input({ message: `${label}:` });
+        if (value.trim()) {
+          await runLog(adapter, config.vaultPath, config.systemFolder, keyToUpdate, value.trim(), today);
+          console.log(chalk.green(`  ✓ Updated ${keyToUpdate}: ${value.trim()}`));
+        }
+      }
+    }
   }
 }
 
