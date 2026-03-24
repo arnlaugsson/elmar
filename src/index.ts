@@ -7,7 +7,7 @@ import { runCapture } from "./commands/capture.js";
 import { collectTasks, filterTasks } from "./commands/tasks.js";
 import { runLog } from "./commands/log.js";
 import { runJournal } from "./commands/journal.js";
-import { runDone } from "./commands/done.js";
+import { runDone, runDoneInteractive } from "./commands/done.js";
 import { runStatus } from "./commands/status.js";
 import { runNewProject } from "./commands/new.js";
 import { runMigrate } from "./commands/migrate.js";
@@ -143,14 +143,18 @@ program
 program
   .command("done")
   .description("Mark a task as complete")
-  .argument("<text>", "Task text to match")
-  .action(async (text: string) => {
+  .argument("[text]", "Task text to match (omit to pick from list)")
+  .action(async (text: string | undefined) => {
     try {
       const config = loadConfig();
       const adapter = resolveAdapter(config);
-      const result = await runDone(adapter, config.vaultPath, text);
-      console.log(chalk.green(`Completed: ${result.task}`));
-      console.log(chalk.dim(`  in ${result.file}`));
+      if (text) {
+        const result = await runDone(adapter, config.vaultPath, text);
+        console.log(chalk.green(`Completed: ${result.task}`));
+        console.log(chalk.dim(`  in ${result.file}`));
+      } else {
+        await runDoneInteractive(adapter, config.vaultPath);
+      }
     } catch (err: unknown) {
       console.error(chalk.red((err as Error).message));
       process.exit(1);
