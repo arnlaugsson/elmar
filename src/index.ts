@@ -14,7 +14,7 @@ import { runMigrate } from "./commands/migrate.js";
 import { runReview } from "./commands/review.js";
 import { listProjects } from "./commands/projects.js";
 import { runOpen } from "./commands/open.js";
-import { getCliVersion } from "./core/migrations.js";
+import { getCliVersion, collectPendingMigrations } from "./core/migrations.js";
 import chalk from "chalk";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -26,7 +26,14 @@ program
   .description(
     "Personal knowledge & productivity system — Obsidian vault + CLI"
   )
-  .version(getCliVersion());
+  .version(getCliVersion())
+  .addHelpText("after", `
+Meta flags (use instead of subcommands):
+  --update          Pull latest code, rebuild, and relink the CLI
+  --migrate         Upgrade vault to the latest version
+  --migrate-dry-run Preview migration changes without modifying
+  --migrate-yes     Apply all migration fixes without prompting
+  --completion      Output zsh completion script`);
 
 program
   .command("init")
@@ -220,21 +227,6 @@ program
   });
 
 program
-  .command("migrate")
-  .description("Upgrade vault to the latest version")
-  .option("--dry-run", "Preview changes without modifying the vault")
-  .option("--yes", "Apply all fixes without prompting")
-  .action(async (opts) => {
-    try {
-      const config = loadConfig();
-      await runMigrate(config, { dryRun: opts.dryRun, yes: opts.yes });
-    } catch (err: unknown) {
-      console.error(chalk.red((err as Error).message));
-      process.exit(1);
-    }
-  });
-
-program
   .command("review")
   .description("Interactive review (daily/weekly/monthly)")
   .option("--fresh", "Reset daily state and start fresh")
@@ -308,45 +300,11 @@ program
     );
   });
 
-program
-  .command("update")
-  .description("Pull latest code, rebuild, and relink the CLI")
-  .action(async () => {
-    const { execSync } = await import("node:child_process");
-    const { fileURLToPath } = await import("node:url");
-    const { dirname } = await import("node:path");
-    const projectRoot = dirname(dirname(fileURLToPath(import.meta.url)));
+// Handle meta flags before Commander processes subcommands
+const argv = process.argv.slice(2);
 
-    const run = (cmd: string) => {
-      console.log(chalk.dim(`$ ${cmd}`));
-      execSync(cmd, { cwd: projectRoot, stdio: "inherit" });
-    };
-
-    try {
-      const headBefore = execSync("git rev-parse HEAD", { cwd: projectRoot }).toString().trim();
-      run("git pull");
-      const headAfter = execSync("git rev-parse HEAD", { cwd: projectRoot }).toString().trim();
-
-      if (headBefore === headAfter) {
-        console.log(chalk.green("Already up to date."));
-        return;
-      }
-
-      run("npm install");
-      run("npm run build");
-      run("npm link");
-      console.log(chalk.green("\n✓ Elmar updated to latest version."));
-    } catch {
-      console.error(chalk.red("Update failed. Check the output above."));
-      process.exit(1);
-    }
-  });
-
-program
-  .command("completion")
-  .description("Output zsh completion script (eval \"$(elmar completion)\")")
-  .action(() => {
-    console.log(`#compdef elmar
+if (argv.includes("--completion")) {
+  console.log(`#compdef elmar
 
 _elmar() {
   local -a commands
@@ -359,16 +317,16 @@ _elmar() {
     'done:Mark a task as complete'
     'new:Create a new project'
     'status:Show overview of inbox, tasks, and tracking'
-    'migrate:Upgrade vault to the latest version'
     'review:Interactive review (daily/weekly/monthly)'
     'projects:List projects'
     'open:Open a project in your editor or Obsidian'
     'metrics:Show metric trends'
-    'update:Pull latest code, rebuild, and relink the CLI'
-    'completion:Output zsh completion script'
   )
 
   _arguments -C \\
+    '--update[Pull latest code, rebuild, and relink]' \\
+    '--migrate[Upgrade vault to the latest version]' \\
+    '--completion[Output zsh completion script]' \\
     '1:command:->command' \\
     '*::arg:->args'
 
@@ -397,11 +355,6 @@ _elmar() {
         open)
           _arguments '--obsidian[Open in Obsidian instead of editor]'
           ;;
-        migrate)
-          _arguments \\
-            '--dry-run[Preview changes without modifying the vault]' \\
-            '--yes[Apply all fixes without prompting]'
-          ;;
         new)
           _arguments \\
             '1:type:(project)' \\
@@ -417,6 +370,68 @@ _elmar() {
 }
 
 compdef _elmar elmar`);
-  });
+  process.exit(0);
+} else if (argv.includes("--update")) {
+  const { execSync } = await import("node:child_process");
+  const { fileURLToPath } = await import("node:url");
+  const { dirname } = await import("node:path");
+  const projectRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 
-program.parse();
+  const run = (cmd: string) => {
+    console.log(chalk.dim(`$ ${cmd}`));
+    execSync(cmd, { cwd: projectRoot, stdio: "inherit" });
+  };
+
+  try {
+    const headBefore = execSync("git rev-parse HEAD", { cwd: projectRoot }).toString().trim();
+    run("git pull");
+    const headAfter = execSync("git rev-parse HEAD", { cwd: projectRoot }).toString().trim();
+
+    if (headBefore === headAfter) {
+      console.log(chalk.green("Already up to date."));
+      process.exit(0);
+    }
+
+    run("npm install");
+    run("npm run build");
+    run("npm link");
+    console.log(chalk.green("\n✓ Elmar updated to latest version."));
+
+    try {
+      const config = loadConfig();
+      const pending = collectPendingMigrations(
+        config.vaultPath,
+        config.systemFolder,
+        getCliVersion()
+      );
+      if (pending.newFiles.length > 0 || pending.fixes.length > 0) {
+        console.log(
+          chalk.yellow(
+            `\nVault migration available (${pending.fromVersion} → ${pending.toVersion}).` +
+            `\nRun ${chalk.bold("elmar --migrate")} to upgrade your vault.`
+          )
+        );
+      }
+    } catch {
+      // Config may not exist yet (fresh install) — skip migration check
+    }
+  } catch {
+    console.error(chalk.red("Update failed. Check the output above."));
+    process.exit(1);
+  }
+  process.exit(0);
+} else if (argv.includes("--migrate") || argv.includes("--migrate-dry-run") || argv.includes("--migrate-yes")) {
+  try {
+    const config = loadConfig();
+    await runMigrate(config, {
+      dryRun: argv.includes("--migrate-dry-run"),
+      yes: argv.includes("--migrate-yes"),
+    });
+  } catch (err: unknown) {
+    console.error(chalk.red((err as Error).message));
+    process.exit(1);
+  }
+  process.exit(0);
+} else {
+  program.parse();
+}
