@@ -29,6 +29,7 @@ import { loadRegistry } from "../core/metric-registry.js";
 import { getFrontmatterField, setFrontmatterField } from "../core/markdown-utils.js";
 import { runNewProject } from "./new.js";
 import { join } from "node:path";
+import { execSync } from "node:child_process";
 import chalk from "chalk";
 import { select, confirm, input, number as numberPrompt, editor, CancelPromptError } from "../core/prompt.js";
 
@@ -253,21 +254,49 @@ async function processInboxFiles(
 
   console.log(`\nInbox files: ${inboxFiles.length}`);
 
-  const choices = mandatory
+  const baseChoices = mandatory
     ? [
-        { value: "move", name: "Move to project" },
+        { value: "open-editor", name: "Open in editor" },
+        { value: "open-obsidian", name: "Open in Obsidian" },
+        { value: "move", name: "Move to projects" },
         { value: "project", name: "New project" },
         { value: "delete", name: "Delete" },
       ]
     : [
-        { value: "skip", name: "Skip" },
-        { value: "move", name: "Move to project" },
+        { value: "open-editor", name: "Open in editor" },
+        { value: "open-obsidian", name: "Open in Obsidian" },
+        { value: "move", name: "Move to projects" },
         { value: "project", name: "New project" },
+        { value: "skip", name: "Skip" },
       ];
 
   for (const file of inboxFiles) {
     const name = file.replace(`${inboxFolder}/`, "").replace(".md", "");
-    const action = await select({ message: `📄 ${name}`, choices });
+    let action: string;
+
+    // Loop so user can view the file then decide
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      action = await select({ message: `📄 ${name}`, choices: baseChoices });
+
+      if (action === "open-editor") {
+        const fullPath = join(config.vaultPath, file);
+        const editorCmd = process.env.EDITOR ?? "vim";
+        execSync(`${editorCmd} "${fullPath}"`, { stdio: "inherit" });
+        continue;
+      }
+
+      if (action === "open-obsidian") {
+        const vaultName = config.vaultPath.split("/").pop() ?? "vault";
+        const encodedPath = encodeURIComponent(file);
+        const uri = `obsidian://open?vault=${encodeURIComponent(vaultName)}&file=${encodedPath}`;
+        execSync(`open "${uri}"`);
+        console.log(chalk.dim(`  Opened in Obsidian`));
+        continue;
+      }
+
+      break;
+    }
 
     if (action === "move") {
       await adapter.moveNote(file, `1-Projects/${name}.md`);
@@ -276,7 +305,6 @@ async function processInboxFiles(
       const projectName = await input({ message: "Project name:", default: name });
       if (projectName.trim()) {
         const projectPath = await runNewProject(adapter, config, projectName.trim(), {});
-        // Append inbox file content to the project's Notes section
         const inboxContent = await adapter.readNote(file);
         await adapter.appendToSection(projectPath, "Notes", inboxContent);
         await adapter.deleteNote(file);
