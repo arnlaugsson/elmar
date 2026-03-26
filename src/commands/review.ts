@@ -253,6 +253,8 @@ async function processInboxFiles(
   if (inboxFiles.length === 0) return;
 
   console.log(`\nInbox files: ${inboxFiles.length}`);
+  const reviewFiles = await confirm({ message: "Review inbox files?", default: true });
+  if (!reviewFiles) return;
 
   const baseChoices = mandatory
     ? [
