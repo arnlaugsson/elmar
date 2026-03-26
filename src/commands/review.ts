@@ -267,6 +267,7 @@ async function processInboxFiles(
         { value: "open-obsidian", name: "Open in Obsidian" },
         { value: "move", name: "Move to projects" },
         { value: "project", name: "New project" },
+        { value: "delete", name: "Delete" },
         { value: "skip", name: "Skip" },
       ];
 
