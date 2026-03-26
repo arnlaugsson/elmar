@@ -60,4 +60,25 @@ describe("runStatus", () => {
     const summary = await runStatus(adapter, vaultPath, "0-Inbox/inbox.md", "_System", "2026-03-23");
     expect(summary.inboxCount).toBe(2);
   });
+
+  it("counts inbox files in addition to inbox items", async () => {
+    writeFileSync(
+      join(vaultPath, "0-Inbox", "captured-note.md"),
+      "# Some captured note\n\nContent here.\n"
+    );
+    writeFileSync(
+      join(vaultPath, "0-Inbox", "another-note.md"),
+      "# Another note\n"
+    );
+    const summary = await runStatus(adapter, vaultPath, "0-Inbox/inbox.md", "_System", "2026-03-23");
+    // 2 inbox items + 2 inbox files = 4
+    expect(summary.inboxCount).toBe(4);
+  });
+
+  it("does not count non-md files in inbox folder", async () => {
+    writeFileSync(join(vaultPath, "0-Inbox", "image.png"), "fake");
+    const summary = await runStatus(adapter, vaultPath, "0-Inbox/inbox.md", "_System", "2026-03-23");
+    // 2 inbox items, 0 extra files (png excluded)
+    expect(summary.inboxCount).toBe(2);
+  });
 });

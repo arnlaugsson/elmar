@@ -27,6 +27,13 @@ export async function runStatus(
     ).length;
   }
 
+  // Count inbox files (excluding inbox.md itself)
+  const inboxFolder = inboxPath.replace(/\/[^/]+$/, "");
+  const inboxFiles = await adapter.listFiles(inboxFolder);
+  inboxCount += inboxFiles.filter(
+    (f) => f.endsWith(".md") && f !== inboxPath
+  ).length;
+
   const allTasks = await collectTasks(adapter, vaultPath);
   const tasks = allTasks.filter((t) => !t.completed);
   const openTaskCount = tasks.length;

@@ -136,9 +136,10 @@ async function runDailySteps(
         await processInboxItems(adapter, config, items, false);
       }
     } else {
-      console.log(chalk.green("Inbox is clear!"));
+      console.log(chalk.green("Inbox items clear!"));
     }
   }
+  await processInboxFiles(adapter, config, false);
 
   // Step 2: Today's tasks
   onStep(1);
@@ -237,6 +238,57 @@ async function runDailySteps(
   }
 }
 
+async function processInboxFiles(
+  adapter: VaultAdapter,
+  config: ElmarConfig,
+  mandatory: boolean
+): Promise<void> {
+  const inboxFolder = config.inboxFile.replace(/\/[^/]+$/, "");
+  const files = await adapter.listFiles(inboxFolder);
+  const inboxFiles = files.filter(
+    (f) => f.endsWith(".md") && f !== config.inboxFile
+  );
+
+  if (inboxFiles.length === 0) return;
+
+  console.log(`\nInbox files: ${inboxFiles.length}`);
+
+  const choices = mandatory
+    ? [
+        { value: "move", name: "Move to project" },
+        { value: "project", name: "New project" },
+        { value: "delete", name: "Delete" },
+      ]
+    : [
+        { value: "skip", name: "Skip" },
+        { value: "move", name: "Move to project" },
+        { value: "project", name: "New project" },
+      ];
+
+  for (const file of inboxFiles) {
+    const name = file.replace(`${inboxFolder}/`, "").replace(".md", "");
+    const action = await select({ message: `📄 ${name}`, choices });
+
+    if (action === "move") {
+      await adapter.moveNote(file, `1-Projects/${name}.md`);
+      console.log(chalk.green(`  → Moved to 1-Projects/${name}.md`));
+    } else if (action === "project") {
+      const projectName = await input({ message: "Project name:", default: name });
+      if (projectName.trim()) {
+        const projectPath = await runNewProject(adapter, config, projectName.trim(), {});
+        // Append inbox file content to the project's Notes section
+        const inboxContent = await adapter.readNote(file);
+        await adapter.appendToSection(projectPath, "Notes", inboxContent);
+        await adapter.deleteNote(file);
+        console.log(chalk.green(`  → Project created, inbox file merged`));
+      }
+    } else if (action === "delete") {
+      await adapter.deleteNote(file);
+      console.log(chalk.dim(`  → Deleted`));
+    }
+  }
+}
+
 async function processInboxItems(
   adapter: VaultAdapter,
   config: ElmarConfig,
@@ -324,9 +376,10 @@ async function runWeeklySteps(
       console.log(`Inbox: ${items.length} items to process`);
       await processInboxItems(adapter, config, items, true);
     } else {
-      console.log(chalk.green("Inbox is clear!"));
+      console.log(chalk.green("Inbox items clear!"));
     }
   }
+  await processInboxFiles(adapter, config, true);
 
   // Step 2: Project scan
   onStep(1);
