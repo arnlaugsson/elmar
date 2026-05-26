@@ -10,7 +10,7 @@ import {
 } from "../core/migrations.js";
 import { existsSync } from "node:fs";
 import chalk from "chalk";
-import inquirer from "inquirer";
+import { input } from "../core/prompt.js";
 
 export async function runMigrate(
   config: ElmarConfig,
@@ -84,14 +84,10 @@ export async function runMigrate(
     if (opts.yes) {
       selectedIndices = pending.fixes.map((_, i) => i);
     } else {
-      const { choice } = await inquirer.prompt([
-        {
-          type: "input",
-          name: "choice",
-          message: "Apply fixes? [1,2,..., all, none]:",
-          default: "all",
-        },
-      ]);
+      const choice = await input({
+        message: "Apply fixes? [1,2,..., all, none]:",
+        default: "all",
+      });
 
       const trimmed = choice.trim().toLowerCase();
       if (trimmed === "all") {
